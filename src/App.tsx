@@ -56,6 +56,41 @@ function LoadingMark({ text }: { text: string }) {
   );
 }
 
+function CloseGuard() {
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const win = getCurrentWindow();
+      const unlisten = await win.onCloseRequested(async (event) => {
+        if (!mounted) return;
+        event.preventDefault();
+        const { confirm } = await import("@tauri-apps/plugin-dialog");
+        const confirmed = await confirm("هل تريد إغلاق البرنامج؟", {
+          title: "تأكيد الإغلاق",
+          okLabel: "إغلاق",
+          cancelLabel: "إلغاء",
+        });
+        if (confirmed) {
+          await win.destroy();
+        }
+      });
+      return () => { unlisten(); };
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  return null;
+}
+
 function ThemeSync() {
   const mode = usePrefs((p) => normalizeTheme(p.values["ui.theme"]));
   useEffect(() => {
@@ -157,6 +192,7 @@ export default function App() {
   return (
     <I18nProvider>
       <BrowserRouter>
+        <CloseGuard />
         <ThemeSync />
         <LicenseGate />
         <ToastHost />

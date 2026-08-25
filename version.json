@@ -1,6 +1,6 @@
 {
-  "version": "1.0.4",
-  "download_url": "https://github.com/ahmedhosny2077/WATEENPOS/releases/download/v1.0.4/WATEEN_POS_Full_v1.0.4.exe",
-  "release_notes_ar": "إصلاح مشكلة تجمّد البرنامج عند البدء + شاشة ترحيب",
+  "version": "1.0.5",
+  "download_url": "https://github.com/ahmedhosny2077/WATEENPOS/releases/download/v1.0.5/WATEEN_POS_Full_v1.0.5.exe",
+  "release_notes_ar": "إصلاح مشكلة تجمّد البرنامج + شاشة ترحيب + تأكيد الإغلاق",
   "file_size_mb": 210
 }
