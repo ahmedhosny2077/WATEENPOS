@@ -1,0 +1,99 @@
+╔══════════════════════════════════════════════════════════════╗
+║     بروميت لإنشاء نظام تحديث تلقائي لتطبيق ديسكتوب         ║
+║     (انسخ هذا البروميت واعطيه للذكاء الاصطناعي)              ║
+╚══════════════════════════════════════════════════════════════╝
+
+================================================================
+  انسخ من هنا
+================================================================
+
+أريد إضافة نظام تحديث تلقائي (Auto-Update System) لتطبيق ديسكتوب مبني بـ Python + PyWebview + Django + Waitress + PyInstaller + Inno Setup.
+
+## المتطلبات:
+
+### 1. ملف updater.py
+أنشئ ملف `desktop_app/updater.py` يحتوي:
+- متغير `CURRENT_VERSION` لرقم النسخة الحالية
+- متغيرات `GITHUB_USER` و `GITHUB_REPO` لحساب GitHub
+- `VERSION_URL` يستخدم GitHub API (ليس raw) لتجنب مشاكل الـ cache:
+  `https://api.github.com/repos/{USER}/{REPO}/contents/version.json`
+- دالة `_parse_version(v)`: تحوّل string مثل "1.2.0" إلى tuple للمقارنة
+- دالة `check_for_update()`: تجلب version.json من GitHub API (المحتوى يأتي بـ base64 فيحتاج decode)، تقارن النسخة، تُرجع dict فيه معلومات التحديث أو None
+- دالة `download_update(url, progress_callback)`: تنزّل ملف التثبيت إلى %TEMP% مع إرسال نسبة التقدم
+- دالة `install_and_restart(installer_path)`: تشغّل المثبّت بـ `/SILENT /CLOSEAPPLICATIONS` ثم تغلق البرنامج بـ `os._exit(0)`
+- دالة `download_and_install(url, progress_callback)`: تنفذ التنزيل ثم التثبيت
+
+### 2. التكامل مع main.py (PyWebview)
+في `desktop_app/main.py`:
+- دالة `_check_update_after_load()` تعمل في thread بعد بدء السيرفر
+- تستدعي `check_for_update()` وإذا وجد تحديث تعرض JavaScript modal في الـ webview
+- الـ modal يحتوي زرين: "تحديث الآن" (يبدأ التنزيل) و "ذكرني لاحقاً" (يغلق الـ modal)
+- عند الضغط على "تحديث الآن" يتحول الـ modal لشاشة تنزيل مع progress bar
+- الـ `_AppAPI` class (js_api) يحتوي دالة `start_update(url)` تُستدعى من JavaScript
+
+### 3. صفحة "حول البرنامج" (About Page)
+في صفحة About أضف:
+- قسم "تحديثات البرنامج" يحتوي:
+  - شارة النسخة الحالية (أخضر)
+  - زر "البحث عن تحديثات" يستدعي AJAX endpoint
+  - عند إيجاد تحديث: يظهر شارة النسخة الجديدة (بنفسجي) + ملاحظات التحديث + زرين: "تنزيل وتثبيت" و "ذكرني لاحقاً"
+  - progress bar عند بدء التنزيل
+- AJAX endpoint: `/settings/about/check-update/` يستدعي `check_for_update()` ويرجع JSON
+
+### 4. بلاطة في صفحة الإعدادات
+أضف بلاطة "تحديثات البرنامج" في صفحة الإعدادات الرئيسية تأخذ المستخدم لقسم التحديثات في صفحة About
+
+### 5. مزامنة رقم النسخة
+في `desktop_app/server.py`:
+- دالة `_sync_app_version()` تُستدعى عند بدء التشغيل
+- تقارن `CURRENT_VERSION` مع النسخة المخزنة في قاعدة البيانات (`spa.app_version`)
+- تحدّث قاعدة البيانات إذا اختلفت
+- تحفظ النسخة الحالية في ملف `%LOCALAPPDATA%\[AppName]\last_version.txt`
+
+### 6. رسالة "تم التحديث بنجاح" بعد التحديث
+عند بدء التشغيل:
+- تقارن النسخة الحالية مع `last_version.txt` (أو `spa.app_version` إذا الملف غير موجود)
+- إذا اختلفت (تحديث تم): تكتب ملف `just_updated.txt` يحتوي `old_version|new_version`
+- في context processor: تقرأ `just_updated.txt` بدون حذفه وتمرر `just_updated` للقوالب
+- في قالب صفحة الدخول (login): إذا `just_updated` موجود، تعرض modal جميل مع confetti يقول "تم التحديث بنجاح! v1.x.0" مع النسخة القديمة والجديدة وزر "متابعة"
+- عند عرض الرسالة: JavaScript يستدعي endpoint لحذف الـ flag file حتى لا تظهر مرة أخرى
+
+### 7. إعدادات Inno Setup
+في `setup.iss`:
+- أضف سطر في [Run] يشغل البرنامج تلقائياً بعد التثبيت الصامت:
+  `Filename: "{app}\{#MyAppExeName}"; Flags: nowait skipifdoesntexist; Check: IsSilentInstall`
+- أضف دالة في [Code]:
+  `function IsSilentInstall: Boolean; begin Result := WizardSilent; end;`
+- اجعل `OutputBaseFilename` يتضمن رقم النسخة: `AppName_Setup_v{#MyAppVersion}`
+
+### 8. ملف version.json على GitHub
+أنشئ ملف `version.json` في المستودع:
+```json
+{
+    "version": "1.0.0",
+    "download_url": "https://github.com/USER/REPO/releases/download/v1.0.0/AppName_Setup_v1.0.0.exe",
+    "release_notes_ar": "الإصدار الأول",
+    "file_size_mb": 57
+}
+```
+
+### 9. PyInstaller spec
+أضف `'desktop_app.updater'` إلى `hidden_imports` في ملف `.spec`
+
+## ملاحظات تقنية مهمة:
+- استخدم GitHub API (ليس raw.githubusercontent.com) لتجنب cache مدته 5 دقائق
+- المحتوى من GitHub API يأتي بـ base64 ويحتاج `base64.b64decode()`
+- كل عمليات التحديث تعمل في background threads حتى لا تجمّد الواجهة
+- الـ updater لا يوقف البرنامج إذا فشل الاتصال (non-critical errors)
+- استخدم `%LOCALAPPDATA%\[AppName]\` للملفات القابلة للكتابة (ليس Program Files)
+
+## خطوات رفع تحديث جديد:
+1. غيّر `CURRENT_VERSION` في updater.py
+2. غيّر `MyAppVersion` في setup.iss
+3. ابنِ بـ PyInstaller ثم Inno Setup
+4. أنشئ GitHub Release جديد وارفع ملف التثبيت
+5. عدّل version.json على GitHub بالنسخة الجديدة والرابط
+
+================================================================
+  انتهى البروميت
+================================================================
