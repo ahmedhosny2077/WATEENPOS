@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cmd } from "@/services/api";
-import { Download, PartyPopper, RefreshCw, Rocket, X } from "lucide-react";
+import { Download, PartyPopper, RefreshCw, Rocket, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 type UpdateCheck = {
@@ -15,6 +15,129 @@ type UpdateCheck = {
 };
 
 type Progress = { percent: number; downloadedMb: number; totalMb: number };
+
+function Confetti() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    const colors = [
+      "#f43f5e", "#ec4899", "#a855f7", "#6366f1",
+      "#3b82f6", "#06b6d4", "#10b981", "#f59e0b",
+      "#ef4444", "#84cc16", "#f97316", "#8b5cf6",
+    ];
+
+    type Particle = {
+      x: number; y: number; vx: number; vy: number;
+      size: number; color: string; rotation: number;
+      rotationSpeed: number; shape: "circle" | "rect" | "star";
+      opacity: number; gravity: number;
+    };
+
+    const particles: Particle[] = [];
+    const shapes: ("circle" | "rect" | "star")[] = ["circle", "rect", "star"];
+
+    for (let i = 0; i < 120; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+        y: canvas.height / 2,
+        vx: (Math.random() - 0.5) * 18,
+        vy: -Math.random() * 20 - 5,
+        size: Math.random() * 8 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 15,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        opacity: 1,
+        gravity: 0.3 + Math.random() * 0.2,
+      });
+    }
+
+    let animId: number;
+    function animate() {
+      ctx!.clearRect(0, 0, canvas!.width, canvas!.height);
+      let alive = false;
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.vy += p.gravity;
+        p.y += p.vy;
+        p.rotation += p.rotationSpeed;
+        p.vx *= 0.98;
+        p.opacity -= 0.005;
+
+        if (p.opacity <= 0) continue;
+        alive = true;
+
+        ctx!.save();
+        ctx!.translate(p.x, p.y);
+        ctx!.rotate((p.rotation * Math.PI) / 180);
+        ctx!.globalAlpha = p.opacity;
+        ctx!.fillStyle = p.color;
+
+        if (p.shape === "circle") {
+          ctx!.beginPath();
+          ctx!.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx!.fill();
+        } else if (p.shape === "rect") {
+          ctx!.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+          ctx!.beginPath();
+          for (let j = 0; j < 5; j++) {
+            const angle = (j * 4 * Math.PI) / 5 - Math.PI / 2;
+            const r = j % 2 === 0 ? p.size / 2 : p.size / 4;
+            if (j === 0) ctx!.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+            else ctx!.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+          }
+          ctx!.closePath();
+          ctx!.fill();
+        }
+        ctx!.restore();
+      }
+
+      if (alive) animId = requestAnimationFrame(animate);
+    }
+
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ zIndex: 1 }}
+    />
+  );
+}
+
+function FloatingEmojis() {
+  const emojis = ["🌹", "✨", "🎉", "🎊", "💫", "⭐", "🌟", "🎈", "🪄", "💐"];
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
+      {emojis.map((emoji, i) => (
+        <span
+          key={i}
+          className="absolute text-2xl animate-float-up"
+          style={{
+            left: `${10 + (i * 8)}%`,
+            animationDelay: `${i * 0.2}s`,
+            animationDuration: `${2.5 + Math.random() * 1.5}s`,
+          }}
+        >
+          {emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function UpdateChecker({ auto = false }: { auto?: boolean }) {
   const [checking, setChecking] = useState(false);
@@ -81,37 +204,46 @@ export function UpdateChecker({ auto = false }: { auto?: boolean }) {
 
   if (auto && result?.available && !downloading) {
     return (
-      <div className="fixed bottom-5 left-5 z-[9999] max-w-sm animate-in slide-in-from-bottom-4 duration-500">
-        <div className="rounded-2xl bg-white border border-rose-200 shadow-xl p-4">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-rose-50 text-rose-700 grid place-items-center shrink-0">
-              <Rocket size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-bold text-sm text-slate-800">تحديث جديد متاح!</div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                الإصدار {result.info?.version} — {result.info?.releaseNotesAr}
-              </div>
-              <div className="text-[11px] text-slate-400 mt-1">
-                حجم الملف: {result.info?.fileSizeMb} MB
-              </div>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={() => void startDownload()}>
-                  <Download size={14} />
-                  تحديث الآن
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setDismissed(true)}>
-                  لاحقاً
-                </Button>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDismissed(true)}
-              className="h-6 w-6 rounded-lg grid place-items-center text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-            >
-              <X size={14} />
-            </button>
+      <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm grid place-items-center animate-in fade-in duration-300">
+        <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-l from-rose-500 via-violet-500 to-blue-500" />
+
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            className="absolute top-4 left-4 h-8 w-8 rounded-xl grid place-items-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+          >
+            <X size={16} />
+          </button>
+
+          <div className="h-20 w-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-rose-100 via-violet-100 to-blue-100 text-rose-600 grid place-items-center animate-pulse">
+            <Rocket size={36} />
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-800 mb-2">تحديث جديد متاح!</h2>
+
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className="h-7 px-3 rounded-full bg-slate-100 text-xs font-bold text-slate-500 inline-flex items-center">
+              v{result.currentVersion}
+            </span>
+            <span className="text-slate-400">←</span>
+            <span className="h-7 px-3 rounded-full bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 inline-flex items-center gap-1">
+              <Sparkles size={10} />
+              v{result.info?.version}
+            </span>
+          </div>
+
+          <p className="text-sm text-slate-600 mb-2">{result.info?.releaseNotesAr}</p>
+          <p className="text-xs text-slate-400 mb-6">حجم الملف: {result.info?.fileSizeMb} MB</p>
+
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => void startDownload()} className="px-6">
+              <Download size={16} />
+              تحديث الآن
+            </Button>
+            <Button variant="secondary" onClick={() => setDismissed(true)} className="px-5">
+              ذكّرني لاحقاً
+            </Button>
           </div>
         </div>
       </div>
@@ -121,26 +253,28 @@ export function UpdateChecker({ auto = false }: { auto?: boolean }) {
   if (downloading) {
     const pct = progress?.percent || 0;
     return (
-      <div className="fixed inset-0 z-[9999] bg-black/40 grid place-items-center animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm grid place-items-center animate-in fade-in duration-300">
         <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-rose-50 text-rose-700 grid place-items-center">
-            <Download size={28} className={pct < 100 ? "animate-bounce" : ""} />
+          <div className="h-20 w-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-rose-100 to-violet-100 text-rose-600 grid place-items-center">
+            <Download size={32} className={pct < 100 ? "animate-bounce" : ""} />
           </div>
-          <div className="font-bold text-lg text-slate-800 mb-2">
+          <div className="font-bold text-xl text-slate-800 mb-2">
             {pct >= 100 ? "جاري التثبيت…" : "جاري تنزيل التحديث"}
           </div>
-          <div className="text-sm text-slate-500 mb-4">
+          <div className="text-sm text-slate-500 mb-5">
             {pct >= 100
               ? "سيُغلق البرنامج ويُعاد تشغيله تلقائياً"
               : `${progress?.downloadedMb?.toFixed(1) || 0} / ${progress?.totalMb?.toFixed(1) || 0} MB`}
           </div>
-          <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+          <div className="w-full h-4 rounded-full bg-slate-100 overflow-hidden shadow-inner">
             <div
-              className="h-full rounded-full bg-gradient-to-l from-rose-500 to-rose-700 transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-l from-rose-500 via-violet-500 to-blue-500 transition-all duration-500 ease-out relative"
               style={{ width: `${pct}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
+            </div>
           </div>
-          <div className="text-xs text-slate-400 mt-2">{pct}%</div>
+          <div className="text-sm font-bold text-slate-600 mt-3">{pct}%</div>
           {error && (
             <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-sm text-rose-700">
               {error}
@@ -202,43 +336,60 @@ export function UpdateChecker({ auto = false }: { auto?: boolean }) {
 export function JustUpdatedModal() {
   const [show, setShow] = useState(false);
   const [versions, setVersions] = useState<{ old: string; new: string } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     cmd<[string, string] | null>("get_just_updated").then((res) => {
       if (res) {
         setVersions({ old: res[0], new: res[1] });
         setShow(true);
+        setTimeout(() => setShowConfetti(true), 300);
       }
     }).catch(() => {});
   }, []);
 
   function dismiss() {
     setShow(false);
+    setShowConfetti(false);
     cmd("clear_just_updated").catch(() => {});
   }
 
   if (!show || !versions) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/40 grid place-items-center animate-in fade-in duration-300">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center animate-in zoom-in-95 duration-500">
-        <div className="h-20 w-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-700 grid place-items-center">
-          <PartyPopper size={36} />
+    <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm grid place-items-center animate-in fade-in duration-300">
+      {showConfetti && <Confetti />}
+      {showConfetti && <FloatingEmojis />}
+
+      <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-md text-center animate-in zoom-in-90 duration-700 relative" style={{ zIndex: 2 }}>
+        <div className="absolute top-0 left-0 right-0 h-2 rounded-t-3xl bg-gradient-to-l from-emerald-400 via-teal-400 to-cyan-400" />
+
+        <div className="h-24 w-24 mx-auto mb-6 rounded-[2rem] bg-gradient-to-br from-emerald-100 via-teal-50 to-cyan-100 text-emerald-600 grid place-items-center shadow-lg shadow-emerald-100/50 animate-bounce-slow">
+          <PartyPopper size={44} />
         </div>
-        <h2 className="text-xl font-bold text-slate-800 mb-2">تم التحديث بنجاح!</h2>
-        <div className="flex items-center justify-center gap-3 mb-3">
-          <span className="h-7 px-3 rounded-full bg-slate-100 text-xs font-bold text-slate-500 inline-flex items-center">
+
+        <h2 className="text-2xl font-black text-slate-800 mb-3">تم التحديث بنجاح! 🎉</h2>
+
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <span className="h-8 px-4 rounded-full bg-slate-100 text-sm font-bold text-slate-400 inline-flex items-center line-through">
             v{versions.old}
           </span>
-          <span className="text-slate-400">→</span>
-          <span className="h-7 px-3 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 inline-flex items-center">
+          <span className="text-emerald-500 text-lg">→</span>
+          <span className="h-8 px-4 rounded-full bg-gradient-to-l from-emerald-50 to-teal-50 border-2 border-emerald-300 text-sm font-black text-emerald-700 inline-flex items-center gap-1.5 shadow-sm">
+            <Sparkles size={12} className="text-emerald-500" />
             v{versions.new}
           </span>
         </div>
-        <p className="text-sm text-slate-500 mb-6">
-          تم تحديث WATEEN POS إلى الإصدار الجديد بنجاح. استمتع بالتحسينات الجديدة!
+
+        <p className="text-base text-slate-500 mb-8 leading-relaxed">
+          تم تحديث <span className="font-bold text-slate-700">WATEEN POS</span> إلى الإصدار الجديد بنجاح.
+          <br />
+          استمتع بالتحسينات الجديدة! ✨
         </p>
-        <Button onClick={dismiss}>متابعة</Button>
+
+        <Button onClick={dismiss} className="px-8 py-2.5 text-base">
+          🚀 متابعة العمل
+        </Button>
       </div>
     </div>
   );

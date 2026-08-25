@@ -29,12 +29,28 @@ import { LicensePage } from "@/pages/LicensePage";
 import { BrandLogo } from "@/components/BrandLogo";
 import { JustUpdatedModal, UpdateChecker } from "@/components/UpdateChecker";
 
+function hideSplash() {
+  const el = document.getElementById("splash");
+  if (el) {
+    el.classList.add("hide");
+    setTimeout(() => el.remove(), 700);
+  }
+}
+
 function LoadingMark({ text }: { text: string }) {
   return (
     <div className="h-full grid place-items-center">
-      <div className="flex flex-col items-center gap-3 text-ink-muted">
-        <BrandLogo className="h-16 w-16 rounded-2xl shadow-sm" />
-        <div className="text-sm">{text}</div>
+      <div className="flex flex-col items-center gap-4 text-center">
+        <BrandLogo className="h-20 w-20 rounded-2xl shadow-lg animate-pulse" />
+        <div className="space-y-1.5">
+          <div className="text-lg font-bold bg-gradient-to-l from-rose-600 to-violet-600 bg-clip-text text-transparent">
+            مرحباً بك في نظام الوتين
+          </div>
+          <div className="text-sm text-slate-400">{text}</div>
+        </div>
+        <div className="w-48 h-1 rounded-full bg-slate-100 overflow-hidden">
+          <div className="h-full w-1/3 rounded-full bg-gradient-to-l from-rose-500 to-violet-500 animate-[splash-loading_1.4s_ease-in-out_infinite]" />
+        </div>
       </div>
     </div>
   );
@@ -101,6 +117,10 @@ function Gate() {
   useEffect(() => {
     refresh().catch(() => setStatus({ initialized: true, openShift: null, lockMinutes: 10 }));
   }, []);
+
+  useEffect(() => {
+    if (status) hideSplash();
+  }, [status]);
 
   if (!status) return <LoadingMark text="جاري التحميل…" />;
   return (

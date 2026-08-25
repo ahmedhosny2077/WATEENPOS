@@ -7,8 +7,62 @@
     <meta name="color-scheme" content="light" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: asset: blob: https://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost" />
     <title>WATEEN POS</title>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      #splash {
+        position: fixed; inset: 0; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #fff1f2 0%, #ffffff 40%, #f0f9ff 100%);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+      #splash.hide { opacity: 0; transform: scale(1.02); pointer-events: none; }
+      #splash-logo {
+        width: 80px; height: 80px; border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(244,63,94,0.15);
+        animation: splash-pulse 2s ease-in-out infinite;
+      }
+      #splash-title {
+        margin-top: 20px; font-size: 22px; font-weight: 800;
+        background: linear-gradient(135deg, #e11d48, #7c3aed);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text; font-family: 'Cairo', sans-serif;
+      }
+      #splash-subtitle {
+        margin-top: 8px; font-size: 14px; color: #64748b;
+        font-family: 'Cairo', sans-serif;
+      }
+      #splash-bar-wrap {
+        margin-top: 28px; width: 200px; height: 4px;
+        border-radius: 4px; background: #f1f5f9; overflow: hidden;
+      }
+      #splash-bar {
+        height: 100%; width: 30%; border-radius: 4px;
+        background: linear-gradient(90deg, #e11d48, #7c3aed, #3b82f6);
+        animation: splash-loading 1.4s ease-in-out infinite;
+      }
+      #splash-footer {
+        position: absolute; bottom: 24px;
+        font-size: 11px; color: #94a3b8; font-family: 'Cairo', sans-serif;
+      }
+      @keyframes splash-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes splash-loading {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(250%); }
+        100% { transform: translateX(700%); }
+      }
+    </style>
   </head>
   <body>
+    <div id="splash">
+      <img id="splash-logo" src="/brand-logo.png" alt="WATEEN POS" />
+      <div id="splash-title">مرحباً بك في نظام الوتين</div>
+      <div id="splash-subtitle">جاري تحميل النظام...</div>
+      <div id="splash-bar-wrap"><div id="splash-bar"></div></div>
+      <div id="splash-footer">WATEEN POS v1.0.3</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
