@@ -47,34 +47,34 @@ pub fn run() {
                 }
             }
             updater::sync_version_on_startup();
-            if let Some(window) = app.get_webview_window("main") {
-                let win_clone = window.clone();
-                window.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                        api.prevent_close();
-                        let win = win_clone.clone();
-                        std::thread::spawn(move || {
-                            let confirmed = win
-                                .dialog()
-                                .message("هل تريد إغلاق البرنامج؟")
-                                .title("تأكيد الإغلاق")
-                                .kind(MessageDialogKind::Warning)
-                                .buttons(MessageDialogButtons::OkCancelCustom(
-                                    "إغلاق".into(),
-                                    "إلغاء".into(),
-                                ))
-                                .blocking_show();
-                            if confirmed {
-                                let _ = win.destroy();
-                            }
-                        });
-                    }
-                });
-            }
-
             match db::initialize() {
                 Ok(pool) => {
                     app.manage(AppState::new(pool));
+
+                    if let Some(window) = app.get_webview_window("main") {
+                        let win_clone = window.clone();
+                        window.on_window_event(move |event| {
+                            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                                api.prevent_close();
+                                let win = win_clone.clone();
+                                std::thread::spawn(move || {
+                                    let confirmed = win
+                                        .dialog()
+                                        .message("هل تريد إغلاق البرنامج؟")
+                                        .title("تأكيد الإغلاق")
+                                        .kind(MessageDialogKind::Warning)
+                                        .buttons(MessageDialogButtons::OkCancelCustom(
+                                            "إغلاق".into(),
+                                            "إلغاء".into(),
+                                        ))
+                                        .blocking_show();
+                                    if confirmed {
+                                        let _ = win.destroy();
+                                    }
+                                });
+                            }
+                        });
+                    }
                     let handle = app.handle().clone();
                     std::thread::Builder::new()
                         .name("pos-maintenance".into())
