@@ -18,3 +18,4 @@ license.dat
 hmac_secret.key
 release/
 src-tauri/prerequisites/*.exe
+*.exe

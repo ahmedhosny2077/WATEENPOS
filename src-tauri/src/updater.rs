@@ -17,7 +17,7 @@ struct GitHubContent {
     content: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct VersionInfo {
     pub version: String,
     pub download_url: String,
@@ -26,13 +26,35 @@ pub struct VersionInfo {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct UpdateCheck {
-    pub current_version: String,
-    pub available: bool,
-    pub info: Option<VersionInfo>,
+#[serde(rename_all = "camelCase")]
+pub struct VersionInfoOut {
+    pub version: String,
+    pub download_url: String,
+    pub release_notes_ar: String,
+    pub file_size_mb: f64,
+}
+
+impl From<VersionInfo> for VersionInfoOut {
+    fn from(v: VersionInfo) -> Self {
+        Self {
+            version: v.version,
+            download_url: v.download_url,
+            release_notes_ar: v.release_notes_ar,
+            file_size_mb: v.file_size_mb,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCheck {
+    pub current_version: String,
+    pub available: bool,
+    pub info: Option<VersionInfoOut>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DownloadProgress {
     pub percent: u32,
     pub downloaded_mb: f64,
@@ -119,7 +141,7 @@ pub fn check_for_update() -> AppResult<UpdateCheck> {
     Ok(UpdateCheck {
         current_version: CURRENT_VERSION.to_string(),
         available,
-        info: if available { Some(info) } else { None },
+        info: if available { Some(info.into()) } else { None },
     })
 }
 
