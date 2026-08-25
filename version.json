@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "download_url": "https://github.com/ahmedhosny2077/WATEENPOS/releases/download/v1.0.0/WATEEN_POS_Setup_v1.0.0.exe",
-  "release_notes_ar": "الإصدار الأول من WATEEN POS",
-  "file_size_mb": 0
+  "version": "1.0.1",
+  "download_url": "https://github.com/ahmedhosny2077/WATEENPOS/releases/download/v1.0.1/WATEEN_POS_Setup_v1.0.1.exe",
+  "release_notes_ar": "إضافة رسالة تأكيد عند إغلاق البرنامج + تحسينات في الاستقرار",
+  "file_size_mb": 210
 }

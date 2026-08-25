@@ -16,3 +16,5 @@ npm-debug.log*
 license.dat
 .trial_info
 hmac_secret.key
+release/
+src-tauri/prerequisites/*.exe

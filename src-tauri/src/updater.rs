@@ -72,7 +72,12 @@ fn version_url() -> String {
 
 pub fn check_for_update() -> AppResult<UpdateCheck> {
     let url = version_url();
-    let resp = match ureq::get(&url)
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(std::time::Duration::from_secs(10))
+        .timeout_read(std::time::Duration::from_secs(15))
+        .build();
+    let resp = match agent
+        .get(&url)
         .set("User-Agent", "WateenPOS-Updater/1.0")
         .set("Accept", "application/vnd.github.v3+json")
         .call()
