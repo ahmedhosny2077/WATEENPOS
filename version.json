@@ -1,6 +1,6 @@
 {
-  "version": "1.0.6",
-  "download_url": "https://github.com/ahmedhosny2077/WATEENPOS/releases/download/v1.0.6/WATEEN_POS_Full_v1.0.6.exe",
-  "release_notes_ar": "إصلاح مشكلة عدم إغلاق البرنامج + تحسينات الأداء",
+  "version": "1.0.7",
+  "download_url": "https://github.com/ahmedhosny2077/WATEENPOS/releases/download/v1.0.7/WATEEN_POS_Full_v1.0.7.exe",
+  "release_notes_ar": "إصلاح مشكلة قاعدة البيانات مشغولة + تحسين إغلاق البرنامج",
   "file_size_mb": 210
 }
